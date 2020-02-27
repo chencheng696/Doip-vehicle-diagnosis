@@ -17,3 +17,43 @@ Diagnose connection scenarios:
 1.单台车与外部设备使用双绞线点对点通信,这种方式意味着在进行ip诊断时，系统不会受到来自其他车辆或者设备的干扰，通常使用IP寻址或者自动配置
 2.通过无线网络连接单车与单一外部测试设备
 3.单设备与多辆车进行无线连接,在该场景下，只有外部测试设备需要有点对多连接的能力（sockets），如在工厂里某一台产线整车刷新服务器需要同时对多台车辆进行并行刷新。
+
+Doip中的一些概念:
+DoIP Entity
+DoIP实体是任意一个满足DoIP协议的host，其中包括DoIP节点及DoIP网关
+DoIP Gateway
+DoIP网关是在车辆网络内部，实现与本模块及所连接多个子网内ECU通讯访问的节点
+DoIP Node
+DoIP节点是在车辆网络内部，遵守DoIP协议，但不具备路由DoIP数据到连接子网内功能的节点
+DoIP Edge Node
+DoIP边缘节点是在车辆内部，与诊断口Ethernet activation line直连的节点
+External Test Equipment
+车辆外部设备是指存在车辆网络外部，通过DoIP协议与车辆内部子网DoIP Entity实现通讯建立的设备
+
+DoIP中TCP原理及通信建立：
+TCP(Transmission Control Protocol)传输控制协议是一种面向连接的协议，即必须与对方建立可靠连接后才能进行数据交互。这个建立过程就是「三次握手」，即建立TCP连接时，需Client与Server端总共发3次包来确认连接的建立。
+DoIP建立TCP通讯时，通常成对出现端口，一个用于发送，称之为远程端口（remote port）；另一个用于接收，称之为本地端口（local port）。但一个host的发送端口相对也就是对方host的接收端口。每个DoIP Entity需对TCP_DATA端口进行监听，TCP_DATA端口号通常为13400，以便外部设备能与节点建立通讯
+
+第一次握手: 建立连接
+Client也就是External Test Equipment发送连接请求报文段，将标志位syn置为1，并随机产生一个Sequence Number: seq=x; 把这个值发送给Server DoIP Entity，此时Client进入SYN_SENT的状态，等待Server确认。
+第二次握手: Server收到syn报文段
+Server收到Client的syn报文段，由syn=1知道Client正在请求建立连接。Server把ack=x+1；同时要发送syn请求消息，因此把标志位syn置成1，并随机生成seq=y；Server把所有信息一并放入报文段（即syn+ack报文段）发给Client用来确认连接请求，自此Server进入了SYN_RCVD状态。
+第三次握手: Client收到Server（syn+ack）报文段
+检查ack是否等于x+1，如果正确，把ack=y+1，并把数据包发给Server，Server会检查ack是否等于y+1，seq是否等于x+1，如果正确就连接成功，Client和Server进入ESTABLISHED状态，完成握手，可以开始接收数据
+
+DoIP中UDP原理及通信建立:
+UDP（User Data Protocol）用户数据报协议是一种非连接，不保证可靠性的传输层协议，也就是传输数据前Client与Server不需建立连接。只需要知道对方IP地址及端口号，即能够直接发送数据包，只是不能保证是否能够到达。但相比TCP，UDP的速度更快，因此对于需要实时同步传输，但不要求可靠到达的数据，优先考虑UDP协议。
+
+在下载数据的场景下，当要求数据精确无误时，由于UDP会出现丢数据的情况，因而就应采用更安全的TCP。但在高速网络保证下，传输数据延迟以及稳定性得以改善的情况下，若丢帧后采用应用层控制数据重传，则也能够保证UDP传输的可靠性。
+
+DoIP场景下，通过两个UDP端口
+
+UDP_DISCOVERY
+UDP_TEST_EQUIPMENT_REQUEST
+来建立通讯并进行远程数据控制，尤其需要外部设备对车辆IP节点进行广播消息请求时，须使用UDP，由于TCP机制所在，无法实现广播与多播。
+
+过程如下，DoIP以UDP_DISCOVERY或动态定义端口来作为Source Port，向UDP_DISCOVERY广播报文数据，而外部诊断设备则始终监听UDP_DISCOVERY端口来获取消息
+当外部诊断设备需要发送数据时，同样将目标端口设置为UDP_DISCOVERY，源端口UDP_TEST_EQUIPMENT_REQUEST则是动态定义，范围为（49152~65535）。
+
+当请求发送给DoIP后，诊断设备保持对UDP_TEST_EQUIPMENT_REQUEST的监听
+
