@@ -57,3 +57,23 @@ UDP_TEST_EQUIPMENT_REQUEST
 
 当请求发送给DoIP后，诊断设备保持对UDP_TEST_EQUIPMENT_REQUEST的监听
 
+以太网物理层需求
+根据IEEE 802.3中定义，DoIP应支持100Base-TX（100Mbit/s以太网）
+
+根据IEEE 802.3中定义，DoIP应支持10Base-TX（10Mbit/s以太网）
+
+对10Mbit/s网络支持的提出目的是，当两个以太网接口之间100Mbit/s网络无法建立时，10Mbit/s的低速网络会作为备用方案启动。
+
+根据IEC 60950-1 (TNV1 circuit) and IEEE 802.3定义，DoIP边缘节点应设置变压器线圈以满足对1500V电压1min以上的隔离。
+
+以太网数据链路层需求
+DoIP边缘节点应支持与外部网络建立10Mbit/s的以太网
+
+DoIP边缘节点应支持100Mbit/s以太网
+
+根据IEEE 802.3中定义，DoIP的边缘节点在建立连接时，应支持自动握手及自动协商（Auto-Negotiation）以保证端口使用相同的传输速率及单双工模式等
+
+根据IEEE 802.3中定义，测试设备应支持100Mbit/s标准
+
+为提高对以太网线缆（端对端及交叉线缆）的容错能力，测试设备应支持Auto-MDI特性，也就是线序自适应的功能，设备可通过这个功能可以自动检测连接到自己接口上的网线类型，能够自动进行调节。
+
